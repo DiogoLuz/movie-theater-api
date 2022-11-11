@@ -6,28 +6,45 @@ const { Sequelize } = require("sequelize");
 
 const { Show, User } = require("../models");
 
+const { checkShow, checkUser } = require("./middleware");
+
 const { param, validationResult } = require("express-validator");
 
-async function checkUser(req, res, next) {
-  const user = await User.findByPk(req.params.id);
-
-  if (user === null) {
-    res.status(404).send("User is not found");
-  } else {
-    next();
-  }
-}
-
+//Get all users
 usersRouter.get("/", async (req, res) => {
   const users = await User.findAll();
 
   res.send(users);
 });
-
-usersRouter.get("/:id", checkUser, async (req, res) => {
-  const user = await User.findByPk(req.params.id);
+//Get a specific user from the database
+usersRouter.get("/:userid", checkUser, async (req, res) => {
+  const user = await User.findByPk(req.params.userid);
 
   res.send(user);
 });
+
+//Get all a specific user's watched shows
+
+usersRouter.get("/:userid/shows", checkUser, async (req, res) => {
+  const user = await User.findByPk(req.params.userid);
+
+  res.send(user.getShows());
+});
+
+//Adding a show to a user
+
+usersRouter.put(
+  "/:userid/shows/:showid",
+  checkUser,
+  checkShow,
+  async (req, res) => {
+    const user = await User.findByPk(req.params.userid);
+    const show = await Show.findByPk(req.params.showid);
+
+    await show.setUser(user);
+
+    res.send(show);
+  }
+);
 
 module.exports = usersRouter;
